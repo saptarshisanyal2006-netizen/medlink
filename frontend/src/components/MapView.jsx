@@ -1,5 +1,5 @@
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -102,6 +102,19 @@ async function fetchStreetRoute(start, end) {
   return waypoints;
 }
 
+// Resample a route array to a target length for smooth animation pacing
+function sampleRoute(coords, targetCount = 50) {
+  if (!coords || coords.length === 0) return [];
+  if (coords.length <= targetCount) return coords;
+  const result = [];
+  const step = (coords.length - 1) / (targetCount - 1);
+  for (let i = 0; i < targetCount; i++) {
+    const idx = Math.min(coords.length - 1, Math.round(i * step));
+    result.push(coords[idx]);
+  }
+  return result;
+}
+
 // Auto-adjust map bounds when locations change
 function MapAutoBounds({ bounds }) {
   const map = useMap();
@@ -116,29 +129,33 @@ function MapAutoBounds({ bounds }) {
 function MapView({ hospital, patient, ambulance }) {
   if (!hospital || !patient || !ambulance) return null;
 
-  const patientPos = [patient.lat, patient.lng];
+  const initialPatientPos = [patient.lat, patient.lng];
   const hospitalPos = [hospital.lat, hospital.lng];
 
   let initialAmbulancePos = [ambulance.lat, ambulance.lng];
   if (ambulance.lat === patient.lat && ambulance.lng === patient.lng) {
-    initialAmbulancePos = [ambulance.lat + 0.008, ambulance.lng + 0.008];
+    initialAmbulancePos = [ambulance.lat + 0.006, ambulance.lng + 0.006];
   }
 
   const [ambulancePos, setAmbulancePos] = useState(initialAmbulancePos);
+  const [patientPos, setPatientPos] = useState(initialPatientPos);
   const [eta, setEta] = useState(ambulance.eta);
+  const [phase, setPhase] = useState("DISPATCHING"); // DISPATCHING -> PICKUP -> TO_HOSPITAL -> ARRIVED
+  const [statusMessage, setStatusMessage] = useState("Ambulance dispatched");
   const [ambulanceRoute, setAmbulanceRoute] = useState([]);
   const [hospitalRoute, setHospitalRoute] = useState([]);
   const [loadingRoutes, setLoadingRoutes] = useState(true);
+  const [replayKey, setReplayKey] = useState(0);
 
-  // Fetch real road routes whenever endpoints change
+  // Fetch real road routes whenever coordinates change
   useEffect(() => {
     let isCancelled = false;
     setLoadingRoutes(true);
 
     async function loadRoutes() {
       const [routeAmb, routeHosp] = await Promise.all([
-        fetchStreetRoute(initialAmbulancePos, patientPos),
-        fetchStreetRoute(patientPos, hospitalPos),
+        fetchStreetRoute(initialAmbulancePos, initialPatientPos),
+        fetchStreetRoute(initialPatientPos, hospitalPos),
       ]);
 
       if (!isCancelled) {
@@ -155,55 +172,114 @@ function MapView({ hospital, patient, ambulance }) {
     };
   }, [ambulance.lat, ambulance.lng, patient.lat, patient.lng, hospital.lat, hospital.lng]);
 
-  // Animate ambulance smoothly and slowly along the real street route
+  // 2-Phase Sequential Animation:
+  // Phase 1: Ambulance travels to Patient at VIT Chennai
+  // Phase 2: Patient boards ambulance and BOTH travel together to Hospital
   useEffect(() => {
-    if (ambulanceRoute.length < 2) return;
+    if (ambulanceRoute.length < 2 || hospitalRoute.length < 2) return;
 
-    let currentIndex = 0;
-    const totalPoints = ambulanceRoute.length;
-    setAmbulancePos(ambulanceRoute[0]);
+    let isMounted = true;
+    let timerId = null;
+
+    // Resample routes for smooth, steady visual speed
+    const ambSteps = sampleRoute(ambulanceRoute, 35);
+    const hospSteps = sampleRoute(hospitalRoute, 55);
+
+    // Reset initial positions
+    setAmbulancePos(ambSteps[0]);
+    setPatientPos(initialPatientPos);
     setEta(ambulance.eta);
+    setPhase("DISPATCHING");
+    setStatusMessage(`🚑 Phase 1: Ambulance en route to ${patient.name || "Patient"} at ${patient.location || "VIT Chennai"}`);
 
-    // Speed: 280ms interval per road waypoint provides gentle, realistic movement
-    const moveInterval = setInterval(() => {
-      currentIndex += 1;
-      if (currentIndex >= totalPoints) {
-        setAmbulancePos(ambulanceRoute[totalPoints - 1]);
-        clearInterval(moveInterval);
+    let ambIndex = 0;
+    const leg1IntervalMs = 240;
+
+    // Phase 1: Ambulance -> Patient
+    const leg1Interval = setInterval(() => {
+      ambIndex += 1;
+      if (ambIndex >= ambSteps.length) {
+        clearInterval(leg1Interval);
+        if (!isMounted) return;
+
+        // Ambulance has reached patient!
+        setAmbulancePos(initialPatientPos);
+        setPhase("PICKUP");
+        setStatusMessage(`🚨 Ambulance arrived at patient! Patient boarded. Departing to ${hospital.name}...`);
+        setEta(0);
+
+        // Brief 1.2s pause for patient boarding, then start Phase 2
+        timerId = setTimeout(() => {
+          if (!isMounted) return;
+
+          setPhase("TO_HOSPITAL");
+          setStatusMessage(`🏥 Phase 2: Transporting patient to ${hospital.name}...`);
+
+          let hospIndex = 0;
+          const leg2IntervalMs = 240;
+
+          // Phase 2: Ambulance + Patient -> Hospital
+          const leg2Interval = setInterval(() => {
+            hospIndex += 1;
+            if (hospIndex >= hospSteps.length) {
+              clearInterval(leg2Interval);
+              if (!isMounted) return;
+
+              // Arrival at Hospital
+              setAmbulancePos(hospitalPos);
+              setPatientPos(hospitalPos);
+              setPhase("ARRIVED");
+              setStatusMessage(`✅ Arrived at ${hospital.name}! Emergency patient admitted.`);
+            } else {
+              const currentCoord = hospSteps[hospIndex];
+              setAmbulancePos(currentCoord);
+              // Patient moves together with the ambulance along the road
+              setPatientPos(currentCoord);
+            }
+          }, leg2IntervalMs);
+
+          timerId = leg2Interval;
+        }, 1200);
       } else {
-        setAmbulancePos(ambulanceRoute[currentIndex]);
+        setAmbulancePos(ambSteps[ambIndex]);
       }
-    }, 280);
-
-    // Live countdown for ETA
-    const etaDurationMs = totalPoints * 280;
-    const intervalSeconds = Math.max(1, Math.round(etaDurationMs / (ambulance.eta * 1000)));
-
-    let remainingSeconds = ambulance.eta * 60;
-    const etaInterval = setInterval(() => {
-      remainingSeconds -= intervalSeconds * 2;
-      const displayMinutes = Math.max(0, Math.ceil(remainingSeconds / 60));
-      setEta(displayMinutes);
-      if (remainingSeconds <= 0) {
-        clearInterval(etaInterval);
-      }
-    }, 1000);
+    }, leg1IntervalMs);
 
     return () => {
-      clearInterval(moveInterval);
-      clearInterval(etaInterval);
+      isMounted = false;
+      clearInterval(leg1Interval);
+      if (timerId) clearTimeout(timerId);
     };
-  }, [ambulanceRoute, ambulance.eta]);
+  }, [ambulanceRoute, hospitalRoute, replayKey]);
 
-  const allBounds = [patientPos, hospitalPos, initialAmbulancePos];
+  const allBounds = [initialPatientPos, hospitalPos, initialAmbulancePos];
 
   return (
     <div style={{ marginBottom: "30px" }}>
       {/* Header */}
-      <div style={{ marginBottom: "10px" }}>
-        <h2 style={{ marginBottom: "6px", color: "#0f172a" }}>
-          🗺️ Emergency Route Map
-        </h2>
+      <div style={{ marginBottom: "12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "6px" }}>
+          <h2 style={{ margin: 0, color: "#0f172a" }}>
+            🗺️ Live Emergency Route & Patient Transit Map
+          </h2>
+
+          <button
+            onClick={() => setReplayKey((k) => k + 1)}
+            style={{
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: "999px",
+              fontWeight: "600",
+              fontSize: "13px",
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(37,99,235,0.3)",
+            }}
+          >
+            🔄 Replay Animation
+          </button>
+        </div>
 
         {/* Legend */}
         <div
@@ -220,29 +296,53 @@ function MapView({ hospital, patient, ambulance }) {
           <span>🏥 Hospital</span>
         </div>
 
+        {/* Status Banner */}
+        <div
+          style={{
+            padding: "10px 16px",
+            borderRadius: "12px",
+            background: phase === "ARRIVED" ? "#dcfce7" : phase === "PICKUP" ? "#fef3c7" : "#eff6ff",
+            border: `1.5px solid ${phase === "ARRIVED" ? "#86efac" : phase === "PICKUP" ? "#fde047" : "#bfdbfe"}`,
+            color: phase === "ARRIVED" ? "#166534" : phase === "PICKUP" ? "#854d0e" : "#1e40af",
+            fontWeight: "600",
+            fontSize: "14px",
+            marginBottom: "10px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "8px",
+          }}
+        >
+          <span>{statusMessage}</span>
+          <span style={{ fontSize: "13px", opacity: 0.9 }}>
+            {phase === "DISPATCHING" && `⏱ Pickup ETA: ${eta} min`}
+            {phase === "PICKUP" && "⚡ Boarding"}
+            {phase === "TO_HOSPITAL" && "🚨 Code Red Transit"}
+            {phase === "ARRIVED" && "🏥 Admitted"}
+          </span>
+        </div>
+
         {/* Route labels */}
         <div
           style={{
             display: "flex",
-            gap: "14px",
+            gap: "12px",
             flexWrap: "wrap",
-            fontSize: "14px",
+            fontSize: "13px",
             fontWeight: "600",
             color: "#334155",
           }}
         >
-          <span style={{ background: "#fee2e2", padding: "6px 12px", borderRadius: "999px" }}>
-            🚑 Ambulance → Patient (Road Path)
+          <span style={{ background: "#fee2e2", padding: "5px 12px", borderRadius: "999px" }}>
+            🚑 Leg 1: Ambulance → Patient (Road Path)
           </span>
-          <span style={{ background: "#dbeafe", padding: "6px 12px", borderRadius: "999px" }}>
-            🏥 Patient → Hospital (Road Path)
-          </span>
-          <span style={{ background: "#fef3c7", padding: "6px 12px", borderRadius: "999px" }}>
-            ⏱ ETA: {eta} min
+          <span style={{ background: "#dbeafe", padding: "5px 12px", borderRadius: "999px" }}>
+            🏥 Leg 2: Patient & Ambulance → Hospital (Road Path)
           </span>
           {loadingRoutes && (
-            <span style={{ background: "#e0e7ff", padding: "6px 12px", borderRadius: "999px", color: "#3730a3" }}>
-              🔄 Calculating real road paths...
+            <span style={{ background: "#e0e7ff", padding: "5px 12px", borderRadius: "999px", color: "#3730a3" }}>
+              🔄 Calculating Chennai street routes...
             </span>
           )}
         </div>
@@ -261,7 +361,7 @@ function MapView({ hospital, patient, ambulance }) {
         }}
       >
         <MapContainer
-          center={patientPos}
+          center={initialPatientPos}
           zoom={13}
           style={{ width: "100%", height: "100%" }}
         >
@@ -272,52 +372,51 @@ function MapView({ hospital, patient, ambulance }) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* Real road path: Ambulance to Patient (Red) */}
+          {/* Leg 1 road path: Ambulance to Patient (Dashed Red) */}
           {ambulanceRoute.length > 0 && (
             <Polyline
               positions={ambulanceRoute}
               pathOptions={{
                 color: "#dc2626",
-                weight: 6,
-                opacity: 0.85,
-                dashArray: "10, 8",
+                weight: 5,
+                opacity: phase === "DISPATCHING" ? 0.9 : 0.4,
+                dashArray: "8, 8",
               }}
             />
           )}
 
-          {/* Real road path: Patient to Hospital (Blue) */}
+          {/* Leg 2 road path: Patient to Hospital (Solid Blue) */}
           {hospitalRoute.length > 0 && (
             <Polyline
               positions={hospitalRoute}
               pathOptions={{
                 color: "#2563eb",
                 weight: 6,
-                opacity: 0.9,
+                opacity: phase === "TO_HOSPITAL" || phase === "ARRIVED" ? 0.95 : 0.6,
               }}
             />
           )}
 
-          {/* Animated Ambulance along street path */}
+          {/* Emergency Ambulance Marker */}
           <Marker position={ambulancePos} icon={ambulanceIcon}>
             <Popup>
               <strong>🚑 Emergency Ambulance</strong><br />
               ID: {ambulance.id}<br />
-              Station: {ambulance.location}<br />
-              Live ETA: {eta} min
+              Status: {phase === "DISPATCHING" ? "En route to patient" : phase === "PICKUP" ? "Boarding patient" : phase === "TO_HOSPITAL" ? "Rushing to hospital" : "Arrived"}
             </Popup>
           </Marker>
 
-          {/* Patient Marker */}
+          {/* Patient Marker - moves with ambulance in Phase 2 */}
           <Marker position={patientPos} icon={patientIcon}>
             <Popup>
-              <strong>👤 Patient Location</strong><br />
-              {patient.name || "Patient"}<br />
-              {patient.condition} ({patient.severity})<br />
-              {patient.location}
+              <strong>👤 Patient ({patient.name || "Unknown"})</strong><br />
+              Condition: {patient.condition} ({patient.severity})<br />
+              Origin: {patient.location || "VIT Chennai"}<br />
+              Status: {phase === "DISPATCHING" ? "Awaiting ambulance" : phase === "PICKUP" ? "Boarding ambulance" : "Inside ambulance, heading to hospital"}
             </Popup>
           </Marker>
 
-          {/* Hospital Marker */}
+          {/* Destination Hospital Marker */}
           <Marker position={hospitalPos} icon={hospitalIcon}>
             <Popup>
               <strong>🏥 {hospital.name}</strong><br />

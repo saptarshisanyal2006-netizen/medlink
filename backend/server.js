@@ -15,22 +15,70 @@ const PORT = process.env.PORT || 5000;
 let hospitals = [
   {
     id: "H1",
+    name: "Tagore Medical College & Hospital",
+    specialization: ["Emergency", "Orthopedics", "Trauma"],
+    beds: { Emergency: 8 },
+    distance: 2.5,
+    traffic: 3,
+    rating: 4.6,
+    location: "Rathinamangalam (near VIT Chennai)",
+    lat: 12.8480,
+    lng: 80.1420
+  },
+  {
+    id: "H2",
+    name: "Chettinad Super Speciality Hospital",
+    specialization: ["Cardiology", "Emergency", "Neurology"],
+    beds: { Emergency: 6 },
+    distance: 8.5,
+    traffic: 4,
+    rating: 4.7,
+    location: "Kelambakkam, OMR",
+    lat: 12.7938,
+    lng: 80.2201
+  },
+  {
+    id: "H3",
+    name: "Gleneagles Global Health City",
+    specialization: ["Neurology", "Trauma", "Emergency"],
+    beds: { Emergency: 5 },
+    distance: 10,
+    traffic: 4,
+    rating: 4.8,
+    location: "Perumbakkam",
+    lat: 12.9022,
+    lng: 80.1931
+  },
+  {
+    id: "H4",
+    name: "Dr. Rela Institute & Medical Centre",
+    specialization: ["Cardiology", "Emergency", "Trauma"],
+    beds: { Emergency: 7 },
+    distance: 12,
+    traffic: 5,
+    rating: 4.9,
+    location: "Chromepet, GST Road",
+    lat: 12.9490,
+    lng: 80.1412
+  },
+  {
+    id: "H5",
     name: "Apollo Hospitals (Greams Road)",
     specialization: ["Emergency", "Cardiology", "Orthopedics"],
     beds: { Emergency: 6 },
-    distance: 4,
+    distance: 26,
     traffic: 6,
-    rating: 4.8,
+    rating: 4.9,
     location: "Greams Road, Thousand Lights",
     lat: 13.0607,
     lng: 80.2508
   },
   {
-    id: "H2",
+    id: "H6",
     name: "MIOT International",
     specialization: ["Trauma", "Orthopedics", "Emergency"],
     beds: { Emergency: 5 },
-    distance: 8,
+    distance: 19,
     traffic: 5,
     rating: 4.6,
     location: "Manapakkam",
@@ -38,76 +86,28 @@ let hospitals = [
     lng: 80.1740
   },
   {
-    id: "H3",
-    name: "Fortis Malar Hospital",
-    specialization: ["Cardiology", "Emergency"],
-    beds: { Emergency: 3 },
-    distance: 7,
-    traffic: 4,
-    rating: 4.7,
-    location: "Adyar",
-    lat: 13.0076,
-    lng: 80.2570
-  },
-  {
-    id: "H4",
+    id: "H7",
     name: "SIMS Hospital",
     specialization: ["Neurology", "Emergency"],
     beds: { Emergency: 4 },
-    distance: 3,
-    traffic: 7,
+    distance: 22,
+    traffic: 6,
     rating: 4.5,
     location: "Vadapalani",
     lat: 13.0519,
     lng: 80.2114
   },
   {
-    id: "H5",
+    id: "H8",
     name: "Kauvery Hospital",
     specialization: ["Emergency", "Cardiology"],
     beds: { Emergency: 8 },
-    distance: 3.5,
+    distance: 24,
     traffic: 5,
     rating: 4.6,
     location: "Alwarpet",
     lat: 13.0339,
     lng: 80.2529
-  },
-  {
-    id: "H6",
-    name: "MGM Healthcare",
-    specialization: ["Cardiology", "Emergency"],
-    beds: { Emergency: 3 },
-    distance: 5,
-    traffic: 4,
-    rating: 4.9,
-    location: "Nelson Manickam Road",
-    lat: 13.0712,
-    lng: 80.2223
-  },
-  {
-    id: "H7",
-    name: "Gleneagles Global Health City",
-    specialization: ["Neurology", "Trauma"],
-    beds: { Emergency: 4 },
-    distance: 14,
-    traffic: 3,
-    rating: 4.7,
-    location: "Perumbakkam",
-    lat: 12.9022,
-    lng: 80.1931
-  },
-  {
-    id: "H8",
-    name: "Rajiv Gandhi Govt General Hospital (RGGGH)",
-    specialization: ["Trauma", "Emergency"],
-    beds: { Emergency: 10 },
-    distance: 6,
-    traffic: 8,
-    rating: 4.3,
-    location: "Park Town, Chennai Central",
-    lat: 13.0805,
-    lng: 80.2783
   }
 ];
 
@@ -116,57 +116,58 @@ const initialHospitals = JSON.parse(JSON.stringify(hospitals));
 const ambulances = [
   {
     id: "A1",
-    location: "T. Nagar (Panagal Park)",
+    location: "VIT Chennai Campus (Gate 1)",
     status: "Available",
-    eta: 4,
-    lat: 13.0418,
-    lng: 80.2341
+    eta: 3,
+    lat: 12.8415,
+    lng: 80.1530
   },
   {
     id: "A2",
-    location: "Anna Nagar Roundtana",
+    location: "Vandalur Zoo Junction",
     status: "Available",
-    eta: 7,
-    lat: 13.0850,
-    lng: 80.2101
+    eta: 6,
+    lat: 12.8900,
+    lng: 80.0810
   },
   {
     id: "A3",
-    location: "Guindy Kathipara",
-    status: "Busy",
-    eta: 0,
-    lat: 13.0067,
-    lng: 80.2025
+    location: "Kelambakkam Bus Terminus",
+    status: "Available",
+    eta: 8,
+    lat: 12.7870,
+    lng: 80.2190
   },
   {
     id: "A4",
-    location: "Adyar Signal",
-    status: "Available",
-    eta: 9,
-    lat: 13.0012,
-    lng: 80.2565
+    location: "Tambaram Sanatorium",
+    status: "Busy",
+    eta: 0,
+    lat: 12.9360,
+    lng: 80.1260
   }
 ];
 
-// Patient coordinates in Chennai based on location input
+// Patient coordinates based on location input - defaults to VIT Chennai
 function getPatientCoordinates(location) {
   const map = {
+    "VIT Chennai": { lat: 12.8429, lng: 80.1554 },
+    "VIT": { lat: 12.8429, lng: 80.1554 },
+    "Vandalur": { lat: 12.8900, lng: 80.0810 },
+    "Kelambakkam": { lat: 12.7870, lng: 80.2190 },
+    "Perumbakkam": { lat: 12.9022, lng: 80.1931 },
+    "Chromepet": { lat: 12.9490, lng: 80.1412 },
+    "Tambaram": { lat: 12.9249, lng: 80.1000 },
     "T. Nagar": { lat: 13.0418, lng: 80.2341 },
     "Anna Nagar": { lat: 13.0850, lng: 80.2101 },
     "Adyar": { lat: 13.0012, lng: 80.2565 },
     "Velachery": { lat: 12.9815, lng: 80.2180 },
-    "Mylapore": { lat: 13.0368, lng: 80.2676 },
     "Guindy": { lat: 13.0067, lng: 80.2025 },
-    "Nungambakkam": { lat: 13.0569, lng: 80.2425 },
-    "Vadapalani": { lat: 13.0519, lng: 80.2114 },
-    "Thiruvanmiyur": { lat: 12.9830, lng: 80.2594 },
-    "Kilpauk": { lat: 13.0784, lng: 80.2412 },
-    "Tambaram": { lat: 12.9249, lng: 80.1000 },
-    "Chennai": { lat: 13.0418, lng: 80.2341 }
+    "Chennai": { lat: 12.8429, lng: 80.1554 }
   };
 
   const key = Object.keys(map).find(k => k.toLowerCase() === (location || "").trim().toLowerCase());
-  return key ? map[key] : { lat: 13.0418, lng: 80.2341 }; // Default to T. Nagar, Chennai
+  return key ? map[key] : { lat: 12.8429, lng: 80.1554 }; // Default: VIT Chennai
 }
 
 // -------------------------------
