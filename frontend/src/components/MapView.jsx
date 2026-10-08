@@ -1,5 +1,5 @@
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -11,23 +11,24 @@ const ambulanceIcon = L.divIcon({
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 44px;
-      height: 44px;
+      width: 46px;
+      height: 46px;
       background: #ffffff;
       border: 3px solid #dc2626;
       border-radius: 50%;
-      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45);
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.5);
       font-size: 24px;
       cursor: pointer;
     ">
       🚑
     </div>
   `,
-  iconSize: [44, 44],
-  iconAnchor: [22, 22],
-  popupAnchor: [0, -22],
+  iconSize: [46, 46],
+  iconAnchor: [23, 23],
+  popupAnchor: [0, -23],
 });
 
+// Patient marker that moves along the route
 const patientIcon = L.divIcon({
   className: "",
   html: `
@@ -35,21 +36,58 @@ const patientIcon = L.divIcon({
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       background: #eff6ff;
       border: 3px solid #2563eb;
       border-radius: 50%;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-      font-size: 20px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.5);
+      font-size: 22px;
       cursor: pointer;
     ">
       👤
     </div>
   `,
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
-  popupAnchor: [0, -20],
+  iconSize: [44, 44],
+  iconAnchor: [22, 22],
+  popupAnchor: [0, -22],
+});
+
+// Fixed pickup point marker that always stays at VIT Chennai
+const pickupSpotIcon = L.divIcon({
+  className: "",
+  html: `
+    <div style="
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    ">
+      <div style="
+        background: #1e3a8a;
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        margin-bottom: 2px;
+      ">
+        📍 Pickup Point (VIT Chennai)
+      </div>
+      <div style="
+        width: 14px;
+        height: 14px;
+        background: #3b82f6;
+        border: 3px solid #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      "></div>
+    </div>
+  `,
+  iconSize: [160, 38],
+  iconAnchor: [80, 38],
+  popupAnchor: [0, -38],
 });
 
 const hospitalIcon = L.divIcon({
@@ -59,21 +97,21 @@ const hospitalIcon = L.divIcon({
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 42px;
-      height: 42px;
+      width: 48px;
+      height: 48px;
       background: #f0fdf4;
       border: 3px solid #16a34a;
       border-radius: 50%;
-      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
-      font-size: 22px;
+      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.45);
+      font-size: 26px;
       cursor: pointer;
     ">
       🏥
     </div>
   `,
-  iconSize: [42, 42],
-  iconAnchor: [21, 21],
-  popupAnchor: [0, -21],
+  iconSize: [48, 48],
+  iconAnchor: [24, 24],
+  popupAnchor: [0, -24],
 });
 
 // Helper: fetch driving street route from OpenStreetMap OSRM API
@@ -86,7 +124,7 @@ async function fetchStreetRoute(start, end) {
       return data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
     }
   } catch (err) {
-    console.warn("OSRM routing failed, using fallback:", err);
+    console.warn("OSRM routing failed, using fallback waypoints:", err);
   }
 
   // Fallback: smooth interpolated waypoints
@@ -131,11 +169,7 @@ function MapView({ hospital, patient, ambulance }) {
 
   const initialPatientPos = [patient.lat, patient.lng];
   const hospitalPos = [hospital.lat, hospital.lng];
-
-  let initialAmbulancePos = [ambulance.lat, ambulance.lng];
-  if (ambulance.lat === patient.lat && ambulance.lng === patient.lng) {
-    initialAmbulancePos = [ambulance.lat + 0.006, ambulance.lng + 0.006];
-  }
+  const initialAmbulancePos = [ambulance.lat, ambulance.lng];
 
   const [ambulancePos, setAmbulancePos] = useState(initialAmbulancePos);
   const [patientPos, setPatientPos] = useState(initialPatientPos);
@@ -173,82 +207,80 @@ function MapView({ hospital, patient, ambulance }) {
   }, [ambulance.lat, ambulance.lng, patient.lat, patient.lng, hospital.lat, hospital.lng]);
 
   // 2-Phase Sequential Animation:
-  // Phase 1: Ambulance travels to Patient at VIT Chennai
-  // Phase 2: Patient boards ambulance and BOTH travel together to Hospital
+  // Phase 1: Ambulance drives from depot to Patient at VIT Chennai
+  // Phase 2: Patient and Ambulance BOTH travel together along road to Hospital
   useEffect(() => {
     if (ambulanceRoute.length < 2 || hospitalRoute.length < 2) return;
 
     let isMounted = true;
-    let timerId = null;
+    let leg1Timer = null;
+    let pickupTimer = null;
+    let leg2Timer = null;
 
-    // Resample routes for smooth, steady visual speed
     const ambSteps = sampleRoute(ambulanceRoute, 35);
     const hospSteps = sampleRoute(hospitalRoute, 55);
 
-    // Reset initial positions
+    // Initial positions
     setAmbulancePos(ambSteps[0]);
     setPatientPos(initialPatientPos);
     setEta(ambulance.eta);
     setPhase("DISPATCHING");
-    setStatusMessage(`🚑 Phase 1: Ambulance en route to ${patient.name || "Patient"} at ${patient.location || "VIT Chennai"}`);
+    setStatusMessage(`🚑 Phase 1: Ambulance dispatched from ${ambulance.location} → En route to VIT Chennai`);
 
-    let ambIndex = 0;
-    const leg1IntervalMs = 240;
+    let ambIdx = 0;
+    const stepIntervalMs = 220;
 
-    // Phase 1: Ambulance -> Patient
-    const leg1Interval = setInterval(() => {
-      ambIndex += 1;
-      if (ambIndex >= ambSteps.length) {
-        clearInterval(leg1Interval);
+    // Phase 1: Ambulance travels to Patient at VIT Chennai
+    leg1Timer = setInterval(() => {
+      ambIdx += 1;
+      if (ambIdx >= ambSteps.length) {
+        clearInterval(leg1Timer);
+        leg1Timer = null;
         if (!isMounted) return;
 
-        // Ambulance has reached patient!
         setAmbulancePos(initialPatientPos);
         setPhase("PICKUP");
-        setStatusMessage(`🚨 Ambulance arrived at patient! Patient boarded. Departing to ${hospital.name}...`);
+        setStatusMessage(`🚨 Ambulance arrived at VIT Chennai! Patient boarded. Departing to ${hospital.name}...`);
         setEta(0);
 
-        // Brief 1.2s pause for patient boarding, then start Phase 2
-        timerId = setTimeout(() => {
+        // Pause 1.2s for boarding, then start Phase 2
+        pickupTimer = setTimeout(() => {
           if (!isMounted) return;
 
           setPhase("TO_HOSPITAL");
-          setStatusMessage(`🏥 Phase 2: Transporting patient to ${hospital.name}...`);
+          setStatusMessage(`🏥 Phase 2: Patient & Ambulance traveling together along the road to ${hospital.name}...`);
 
-          let hospIndex = 0;
-          const leg2IntervalMs = 240;
-
-          // Phase 2: Ambulance + Patient -> Hospital
-          const leg2Interval = setInterval(() => {
-            hospIndex += 1;
-            if (hospIndex >= hospSteps.length) {
-              clearInterval(leg2Interval);
+          let hospIdx = 0;
+          leg2Timer = setInterval(() => {
+            hospIdx += 1;
+            if (hospIdx >= hospSteps.length) {
+              clearInterval(leg2Timer);
+              leg2Timer = null;
               if (!isMounted) return;
 
-              // Arrival at Hospital
+              // Arrived at Hospital
               setAmbulancePos(hospitalPos);
               setPatientPos(hospitalPos);
               setPhase("ARRIVED");
               setStatusMessage(`✅ Arrived at ${hospital.name}! Emergency patient admitted.`);
             } else {
-              const currentCoord = hospSteps[hospIndex];
-              setAmbulancePos(currentCoord);
-              // Patient moves together with the ambulance along the road
-              setPatientPos(currentCoord);
+              const currentPoint = hospSteps[hospIdx];
+              // Update BOTH positions so patient and ambulance visibly travel side-by-side!
+              setPatientPos(currentPoint);
+              setAmbulancePos([currentPoint[0] + 0.0004, currentPoint[1] + 0.0004]);
             }
-          }, leg2IntervalMs);
-
-          timerId = leg2Interval;
+          }, stepIntervalMs);
         }, 1200);
       } else {
-        setAmbulancePos(ambSteps[ambIndex]);
+        setAmbulancePos(ambSteps[ambIdx]);
       }
-    }, leg1IntervalMs);
+    }, stepIntervalMs);
 
     return () => {
       isMounted = false;
-      clearInterval(leg1Interval);
-      if (timerId) clearTimeout(timerId);
+      if (leg1Timer) clearInterval(leg1Timer);
+      if (pickupTimer) clearTimeout(pickupTimer);
+      if (leg2Timer) clearInterval(leg2Timer);
     };
   }, [ambulanceRoute, hospitalRoute, replayKey]);
 
@@ -291,9 +323,9 @@ function MapView({ hospital, patient, ambulance }) {
             marginBottom: "10px",
           }}
         >
-          <span>🚑 Ambulance</span>
-          <span>👤 Patient</span>
-          <span>🏥 Hospital</span>
+          <span>🚑 Ambulance (from {ambulance.location})</span>
+          <span>👤 Patient (at {patient.location || "VIT Chennai"})</span>
+          <span>🏥 Hospital ({hospital.name})</span>
         </div>
 
         {/* Status Banner */}
@@ -318,7 +350,7 @@ function MapView({ hospital, patient, ambulance }) {
           <span style={{ fontSize: "13px", opacity: 0.9 }}>
             {phase === "DISPATCHING" && `⏱ Pickup ETA: ${eta} min`}
             {phase === "PICKUP" && "⚡ Boarding"}
-            {phase === "TO_HOSPITAL" && "🚨 Code Red Transit"}
+            {phase === "TO_HOSPITAL" && "🚨 In Transit to Hospital"}
             {phase === "ARRIVED" && "🏥 Admitted"}
           </span>
         </div>
@@ -335,14 +367,14 @@ function MapView({ hospital, patient, ambulance }) {
           }}
         >
           <span style={{ background: "#fee2e2", padding: "5px 12px", borderRadius: "999px" }}>
-            🚑 Leg 1: Ambulance → Patient (Road Path)
+            🚑 Leg 1: Ambulance ({ambulance.location}) → Patient (VIT Chennai)
           </span>
           <span style={{ background: "#dbeafe", padding: "5px 12px", borderRadius: "999px" }}>
-            🏥 Leg 2: Patient & Ambulance → Hospital (Road Path)
+            🏥 Leg 2: Patient & Ambulance → {hospital.name}
           </span>
           {loadingRoutes && (
             <span style={{ background: "#e0e7ff", padding: "5px 12px", borderRadius: "999px", color: "#3730a3" }}>
-              🔄 Calculating Chennai street routes...
+              🔄 Calculating Chennai road routes...
             </span>
           )}
         </div>
@@ -372,7 +404,7 @@ function MapView({ hospital, patient, ambulance }) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* Leg 1 road path: Ambulance to Patient (Dashed Red) */}
+          {/* Leg 1: Ambulance to Patient (Dashed Red Road Path) */}
           {ambulanceRoute.length > 0 && (
             <Polyline
               positions={ambulanceRoute}
@@ -385,7 +417,7 @@ function MapView({ hospital, patient, ambulance }) {
             />
           )}
 
-          {/* Leg 2 road path: Patient to Hospital (Solid Blue) */}
+          {/* Leg 2: Patient to Hospital (Solid Blue Road Path) */}
           {hospitalRoute.length > 0 && (
             <Polyline
               positions={hospitalRoute}
@@ -397,22 +429,32 @@ function MapView({ hospital, patient, ambulance }) {
             />
           )}
 
+          {/* Fixed Origin Marker: Always marks VIT Chennai so you can see where patient started */}
+          <Marker position={initialPatientPos} icon={pickupSpotIcon}>
+            <Popup>
+              <strong>📍 Pickup Spot</strong><br />
+              VIT Chennai (Patient Origin)<br />
+              Vandalur-Kelambakkam Road
+            </Popup>
+          </Marker>
+
           {/* Emergency Ambulance Marker */}
           <Marker position={ambulancePos} icon={ambulanceIcon}>
             <Popup>
               <strong>🚑 Emergency Ambulance</strong><br />
               ID: {ambulance.id}<br />
-              Status: {phase === "DISPATCHING" ? "En route to patient" : phase === "PICKUP" ? "Boarding patient" : phase === "TO_HOSPITAL" ? "Rushing to hospital" : "Arrived"}
+              Origin: {ambulance.location}<br />
+              Status: {phase === "DISPATCHING" ? "Driving to VIT Chennai" : phase === "PICKUP" ? "Boarding patient" : phase === "TO_HOSPITAL" ? "Rushing to hospital" : "Arrived"}
             </Popup>
           </Marker>
 
-          {/* Patient Marker - moves with ambulance in Phase 2 */}
+          {/* Patient Marker - starts at VIT Chennai and moves along the road in Phase 2 */}
           <Marker position={patientPos} icon={patientIcon}>
             <Popup>
-              <strong>👤 Patient ({patient.name || "Unknown"})</strong><br />
+              <strong>👤 Patient ({patient.name || "Student / Patient"})</strong><br />
               Condition: {patient.condition} ({patient.severity})<br />
-              Origin: {patient.location || "VIT Chennai"}<br />
-              Status: {phase === "DISPATCHING" ? "Awaiting ambulance" : phase === "PICKUP" ? "Boarding ambulance" : "Inside ambulance, heading to hospital"}
+              Pickup: VIT Chennai<br />
+              Status: {phase === "DISPATCHING" ? "Waiting at VIT Chennai" : phase === "PICKUP" ? "Boarding ambulance" : "Inside ambulance, heading to hospital"}
             </Popup>
           </Marker>
 

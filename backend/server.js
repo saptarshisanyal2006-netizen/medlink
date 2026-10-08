@@ -116,35 +116,35 @@ const initialHospitals = JSON.parse(JSON.stringify(hospitals));
 const ambulances = [
   {
     id: "A1",
-    location: "VIT Chennai Campus (Gate 1)",
-    status: "Available",
-    eta: 3,
-    lat: 12.8415,
-    lng: 80.1530
-  },
-  {
-    id: "A2",
-    location: "Vandalur Zoo Junction",
+    location: "Vandalur Emergency Depot",
     status: "Available",
     eta: 6,
     lat: 12.8900,
     lng: 80.0810
   },
   {
-    id: "A3",
-    location: "Kelambakkam Bus Terminus",
+    id: "A2",
+    location: "Kelambakkam Dispatch Hub",
     status: "Available",
     eta: 8,
     lat: 12.7870,
     lng: 80.2190
   },
   {
-    id: "A4",
-    location: "Tambaram Sanatorium",
-    status: "Busy",
-    eta: 0,
+    id: "A3",
+    location: "Tambaram Sanatorium Station",
+    status: "Available",
+    eta: 10,
     lat: 12.9360,
     lng: 80.1260
+  },
+  {
+    id: "A4",
+    location: "Chromepet Stand",
+    status: "Busy",
+    eta: 0,
+    lat: 12.9490,
+    lng: 80.1412
   }
 ];
 

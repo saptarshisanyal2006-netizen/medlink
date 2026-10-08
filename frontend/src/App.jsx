@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import GraphView from "./components/GraphView";
 import MapView from "./components/MapView";
@@ -14,6 +14,11 @@ function App() {
   const [graph, setGraph] = useState({ nodes: [], edges: [] });
   const [loading, setLoading] = useState(false);
   const [simulationMessage, setSimulationMessage] = useState("");
+
+  // Automatically fetch default recommendation for VIT Chennai on first load
+  useEffect(() => {
+    getRecommendation();
+  }, []);
 
   const getGraph = async (recommendationData = null) => {
     try {
