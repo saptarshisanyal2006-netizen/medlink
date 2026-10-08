@@ -196,80 +196,148 @@ function App() {
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: "14px",
-            marginBottom: "14px",
+            gap: "18px",
+            marginBottom: "16px",
           }}
         >
-          <input
-            type="text"
-            placeholder="Enter patient name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "14px",
-              borderRadius: "12px",
-              border: "1px solid #cbd5e1",
-              fontSize: "15px",
-            }}
-          />
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "14px",
+                fontWeight: "600",
+                marginBottom: "6px",
+                color: "#334155",
+              }}
+            >
+              Patient Name
+            </label>
+            <input
+              type="text"
+              placeholder="Enter patient name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: "15px",
+                outline: "none",
+              }}
+            />
+          </div>
 
-          <input
-            type="text"
-            placeholder="Enter location (e.g. T. Nagar, Anna Nagar, Adyar)"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "14px",
-              borderRadius: "12px",
-              border: "1px solid #cbd5e1",
-              fontSize: "15px",
-            }}
-          />
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "14px",
+                fontWeight: "600",
+                marginBottom: "6px",
+                color: "#334155",
+              }}
+            >
+              Location / Address
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. T. Nagar, Anna Nagar, Adyar"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: "15px",
+                outline: "none",
+              }}
+            />
+          </div>
         </div>
 
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: "14px",
-            marginBottom: "20px",
+            gap: "18px",
+            marginBottom: "22px",
           }}
         >
-          <select
-            value={condition}
-            onChange={(e) => setCondition(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "14px",
-              borderRadius: "12px",
-              border: "1px solid #cbd5e1",
-              fontSize: "15px",
-            }}
-          >
-            <option>Heart Attack</option>
-            <option>Accident</option>
-            <option>Stroke</option>
-            <option>Fracture</option>
-            <option>Emergency</option>
-          </select>
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "14px",
+                fontWeight: "600",
+                marginBottom: "6px",
+                color: "#334155",
+              }}
+            >
+              Emergency Condition
+            </label>
+            <select
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: "15px",
+                outline: "none",
+              }}
+            >
+              <option>Heart Attack</option>
+              <option>Accident</option>
+              <option>Stroke</option>
+              <option>Fracture</option>
+              <option>Emergency</option>
+            </select>
+          </div>
 
-          <select
-            value={severity}
-            onChange={(e) => setSeverity(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "14px",
-              borderRadius: "12px",
-              border: "1px solid #cbd5e1",
-              fontSize: "15px",
-            }}
-          >
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
-          </select>
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "14px",
+                fontWeight: "600",
+                marginBottom: "6px",
+                color: "#334155",
+              }}
+            >
+              Severity Level
+            </label>
+            <select
+              value={severity}
+              onChange={(e) => setSeverity(e.target.value)}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: "15px",
+                outline: "none",
+              }}
+            >
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+            </select>
+          </div>
         </div>
 
         <div
