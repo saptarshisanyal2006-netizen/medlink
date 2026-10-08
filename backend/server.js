@@ -15,101 +15,99 @@ const PORT = process.env.PORT || 5000;
 let hospitals = [
   {
     id: "H1",
-    name: "CityCare Hospital",
-    specialization: ["Emergency", "Orthopedics"],
-    beds: { Emergency: 5 },
-    distance: 8,
-    traffic: 7,
-    rating: 4.5,
-    location: "MP Nagar",
-    lat: 23.2330,
-    lng: 77.4343
+    name: "Apollo Hospitals (Greams Road)",
+    specialization: ["Emergency", "Cardiology", "Orthopedics"],
+    beds: { Emergency: 6 },
+    distance: 4,
+    traffic: 6,
+    rating: 4.8,
+    location: "Greams Road, Thousand Lights",
+    lat: 13.0607,
+    lng: 80.2508
   },
   {
     id: "H2",
-    name: "Apollo Trauma Center",
-    specialization: ["Trauma", "Emergency"],
-    beds: { Emergency: 3 },
-    distance: 12,
+    name: "MIOT International",
+    specialization: ["Trauma", "Orthopedics", "Emergency"],
+    beds: { Emergency: 5 },
+    distance: 8,
     traffic: 5,
-    rating: 4.8,
-    location: "Habibganj",
-    lat: 23.2210,
-    lng: 77.4530
+    rating: 4.6,
+    location: "Manapakkam",
+    lat: 13.0233,
+    lng: 80.1740
   },
   {
     id: "H3",
-    name: "HeartLine Hospital",
+    name: "Fortis Malar Hospital",
     specialization: ["Cardiology", "Emergency"],
-    beds: { Emergency: 2 },
-    distance: 10,
+    beds: { Emergency: 3 },
+    distance: 7,
     traffic: 4,
     rating: 4.7,
-    location: "Arera Colony",
-    lat: 23.2130,
-    lng: 77.4320
+    location: "Adyar",
+    lat: 13.0076,
+    lng: 80.2570
   },
   {
     id: "H4",
-    name: "Metro Neuro Center",
+    name: "SIMS Hospital",
     specialization: ["Neurology", "Emergency"],
-    beds: { Emergency: 1 },
-    distance: 14,
-    traffic: 6,
-    rating: 4.4,
-    location: "Kolar Road",
-    lat: 23.1790,
-    lng: 77.4370
+    beds: { Emergency: 4 },
+    distance: 3,
+    traffic: 7,
+    rating: 4.5,
+    location: "Vadapalani",
+    lat: 13.0519,
+    lng: 80.2114
   },
-
-  // NEW hospitals
   {
     id: "H5",
-    name: "QuickAid Emergency",
-    specialization: ["Emergency"],
+    name: "Kauvery Hospital",
+    specialization: ["Emergency", "Cardiology"],
     beds: { Emergency: 8 },
-    distance: 3,
-    traffic: 9,
-    rating: 3.8,
-    location: "Shahpura",
-    lat: 23.2150,
-    lng: 77.4450
+    distance: 3.5,
+    traffic: 5,
+    rating: 4.6,
+    location: "Alwarpet",
+    lat: 13.0339,
+    lng: 80.2529
   },
   {
     id: "H6",
-    name: "Elite Cardiac Institute",
-    specialization: ["Cardiology"],
-    beds: { Emergency: 2 },
-    distance: 18,
-    traffic: 3,
+    name: "MGM Healthcare",
+    specialization: ["Cardiology", "Emergency"],
+    beds: { Emergency: 3 },
+    distance: 5,
+    traffic: 4,
     rating: 4.9,
-    location: "BHEL",
-    lat: 23.2400,
-    lng: 77.3900
+    location: "Nelson Manickam Road",
+    lat: 13.0712,
+    lng: 80.2223
   },
   {
     id: "H7",
-    name: "NeuroPlus Advanced",
-    specialization: ["Neurology"],
-    beds: { Emergency: 2 },
-    distance: 6,
-    traffic: 6,
-    rating: 4.6,
-    location: "Ayodhya Nagar",
-    lat: 23.2600,
-    lng: 77.4600
+    name: "Gleneagles Global Health City",
+    specialization: ["Neurology", "Trauma"],
+    beds: { Emergency: 4 },
+    distance: 14,
+    traffic: 3,
+    rating: 4.7,
+    location: "Perumbakkam",
+    lat: 12.9022,
+    lng: 80.1931
   },
   {
     id: "H8",
-    name: "Rapid Trauma Care",
-    specialization: ["Trauma"],
-    beds: { Emergency: 4 },
-    distance: 5,
+    name: "Rajiv Gandhi Govt General Hospital (RGGGH)",
+    specialization: ["Trauma", "Emergency"],
+    beds: { Emergency: 10 },
+    distance: 6,
     traffic: 8,
-    rating: 4.2,
-    location: "Govindpura",
-    lat: 23.2700,
-    lng: 77.4200
+    rating: 4.3,
+    location: "Park Town, Chennai Central",
+    lat: 13.0805,
+    lng: 80.2783
   }
 ];
 
@@ -118,50 +116,57 @@ const initialHospitals = JSON.parse(JSON.stringify(hospitals));
 const ambulances = [
   {
     id: "A1",
-    location: "Sector 62",
+    location: "T. Nagar (Panagal Park)",
     status: "Available",
     eta: 4,
-    lat: 23.2500,
-    lng: 77.4700
+    lat: 13.0418,
+    lng: 80.2341
   },
   {
     id: "A2",
-    location: "MP Nagar",
+    location: "Anna Nagar Roundtana",
     status: "Available",
     eta: 7,
-    lat: 23.2330,
-    lng: 77.4343
+    lat: 13.0850,
+    lng: 80.2101
   },
   {
     id: "A3",
-    location: "Kolar Road",
+    location: "Guindy Kathipara",
     status: "Busy",
     eta: 0,
-    lat: 23.1790,
-    lng: 77.4370
+    lat: 13.0067,
+    lng: 80.2025
   },
   {
     id: "A4",
-    location: "Shahpura",
+    location: "Adyar Signal",
     status: "Available",
-    eta: 10,
-    lat: 23.2150,
-    lng: 77.4450
+    eta: 9,
+    lat: 13.0012,
+    lng: 80.2565
   }
 ];
 
-// Fake patient coordinates based on location input
+// Patient coordinates in Chennai based on location input
 function getPatientCoordinates(location) {
   const map = {
-    "Sector 62": { lat: 23.2500, lng: 77.4700 },
-    "MP Nagar": { lat: 23.2330, lng: 77.4343 },
-    "Habibganj": { lat: 23.2210, lng: 77.4530 },
-    "Arera Colony": { lat: 23.2130, lng: 77.4320 },
-    "Kolar Road": { lat: 23.1790, lng: 77.4370 },
-    "Shahpura": { lat: 23.2150, lng: 77.4450 }
+    "T. Nagar": { lat: 13.0418, lng: 80.2341 },
+    "Anna Nagar": { lat: 13.0850, lng: 80.2101 },
+    "Adyar": { lat: 13.0012, lng: 80.2565 },
+    "Velachery": { lat: 12.9815, lng: 80.2180 },
+    "Mylapore": { lat: 13.0368, lng: 80.2676 },
+    "Guindy": { lat: 13.0067, lng: 80.2025 },
+    "Nungambakkam": { lat: 13.0569, lng: 80.2425 },
+    "Vadapalani": { lat: 13.0519, lng: 80.2114 },
+    "Thiruvanmiyur": { lat: 12.9830, lng: 80.2594 },
+    "Kilpauk": { lat: 13.0784, lng: 80.2412 },
+    "Tambaram": { lat: 12.9249, lng: 80.1000 },
+    "Chennai": { lat: 13.0418, lng: 80.2341 }
   };
 
-  return map[location] || { lat: 23.2500, lng: 77.4700 };
+  const key = Object.keys(map).find(k => k.toLowerCase() === (location || "").trim().toLowerCase());
+  return key ? map[key] : { lat: 13.0418, lng: 80.2341 }; // Default to T. Nagar, Chennai
 }
 
 // -------------------------------

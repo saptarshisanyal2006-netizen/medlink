@@ -9,7 +9,7 @@ function App() {
   const [name, setName] = useState("");
   const [condition, setCondition] = useState("Heart Attack");
   const [severity, setSeverity] = useState("Medium");
-  const [location, setLocation] = useState("Sector 62");
+  const [location, setLocation] = useState("T. Nagar");
   const [result, setResult] = useState(null);
   const [graph, setGraph] = useState({ nodes: [], edges: [] });
   const [loading, setLoading] = useState(false);
@@ -216,7 +216,7 @@ function App() {
 
           <input
             type="text"
-            placeholder="Enter location"
+            placeholder="Enter location (e.g. T. Nagar, Anna Nagar, Adyar)"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             style={{
